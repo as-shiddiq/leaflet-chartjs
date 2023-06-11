@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interakif Map</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+    <style>
+        html{
+            padding: 0;
+            margin: 0;
+            width: 100%;
+        }
+		body {
+            width: 100%;
+			margin: 0;
+            padding: 0;
+		}
+        #map{
+			height: 100vh;
+            width: 100%;
+        }
+        /* width */
+        ::-webkit-scrollbar {
+        width: 10px;
+        }
+
+        /* Track */
+        ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        }
+
+        /* Handle */
+        ::-webkit-scrollbar-thumb {
+        background: #888;
+        }
+
+        /* Handle on hover */
+        ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+        }
+	</style>
+</head>
+<body>
+    <div class="container p-0" style="max-width: calc(100% - 30px)">
+        <div class="row">
+            <div class="col-md-6 d-flex align-items-center flex-column py-5" style="overflow: auto;height: 100vh;">
+                <h4>ChartJs</h4>
+                <div class="btn-group">
+                    <input type="radio" onclick="setChartBar(event)" class="btn btn-check d-none" name="filter" checked value="SD" id="data-sd" autocomplete="off">
+                    <label class="btn btn-primary" for="data-sd">SD</label>
+                    <input type="radio"  onclick="setChartBar(event)" class="btn btn-check d-none" name="filter" value="SMP" id="data-smp" autocomplete="off">
+                    <label class="btn btn-primary" for="data-smp">SMP</label>
+                    <input type="radio" onclick="setChartBar(event)" class="btn btn-check d-none" name="filter" value="SMA" id="data-sma" autocomplete="off">
+                    <label class="btn btn-primary" for="data-sma">SMA</label>
+                </div>
+                <canvas id="chart" class="p-3" style="max-height: 300px;"></canvas>
+                <div class="container-detail d-none">
+
+                </div>
+            </div>
+            <div class="col-md-6 p-0">
+                <div id="map"></div>
+            </div>
+        </div>
+    </div>
+    
+</body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const map = L.map('map').setView([-3.824181, 114.8191513], 10);
+    const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    let elContainerDetail = document.querySelector('.container-detail');
+    let layers = [];
+
+    let arColor = [];
+    arColor['SD'] = '#FD8A8A';
+    arColor['SMP'] = '#A8D1D1';
+    arColor['SMA'] = '#9EA1D4';
+
+    let arKecamatan = [
+        'Bajuin',
+        'Bati Bati',
+        'Batu Ampar',
+        'Bumi Makmur',
+        'Jorong',
+        'Kintap',
+        'Kurau',
+        'Panyipatan',
+        'Pelaihari',
+        'Takisung',
+        'Tambang Ulang'
+    ];
+
+    const elChart = document.getElementById('chart');
+    let defChartBar = 'SD';
+    let idBefore;
+    let chartBar = {
+        type: 'bar',
+        data: {
+            datasets: [{
+                label: '',
+                data: [0],
+                backgroundColor: `${arColor[defChartBar]}`,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display:true,
+                    position: 'top',
+                },
+                // title: {
+                //     display: true,
+                //     text: 'Chart.js Pie Chart'
+                // }
+            }
+        }
+    }
+    
+    let chart = new Chart(elChart,chartBar);
+
+    let styeMapChart = (val='') => {
+        if(val=='')
+        {
+            val = 'SD';
+        }
+        return {
+                fillColor:`${arColor[val]}`,
+                color:`${arColor[val]}ff`,
+                fillOpacity:.1,
+                dashArray:null,
+            }
+    }
+
+    let setChartBar = (e) => {
+        let val = e.target.value;
+        let data = [];
+        elContainerDetail.classList.add('d-none');
+        chart.data.labels = [];
+        defChartBar = val;
+        for(i in layers)
+        {
+            let l = layers[i].getLayers()[0];
+            let f = l.feature;
+            let prop = f.properties;
+            chart.data.labels.push(prop.KECAMATAN);
+            data.push(prop[val]);
+            l.setStyle(styeMapChart(val));
+        }
+        chart.config.type = 'bar';
+        chart.config.options.plugins.legend.display=false;
+        chart.options.scales.x.display=true;
+        chart.options.scales.y.display=true;
+        chart.data.datasets[0].backgroundColor = arColor[val];
+        chart.data.datasets[0].label = val;
+        chart.data.datasets[0].data = data;
+        chart.config.options.aspectRatio=1.7;
+        chart.update();
+        chart.resize();
+
+        map.eachLayer(function (layer) {
+            layer.closePopup();
+        });
+    }
+    
+    let setChartPie = (id) => {
+        let l = layers[id].getLayers()[0];
+        let prop = l.feature.properties;
+        elContainerDetail.classList.remove('d-none');
+        let html = '<table class="table table-bordered">';
+        for(i in prop)
+        {
+            html += `
+                <tr>
+                    <td>${i}</td>
+                    <td>:</td>
+                    <td>${prop[i]}</td>
+                </tr>
+            `;
+        }
+        html += '</table>';
+        elContainerDetail.innerHTML = html;
+
+        chart.config.type = 'pie';
+        chart.config.options.plugins.legend.display=true;
+        chart.config.options.aspectRatio=1;
+        chart.options.scales.x.display=false;
+        chart.options.scales.y.display=false;
+        chart.data.labels = [];
+        let backgroundColor = [];
+        let labels = [];
+        for(i in arColor)
+        {
+            labels.push(i);
+            backgroundColor.push(arColor[i]);
+        }
+        chart.data.datasets[0].backgroundColor = backgroundColor;
+        chart.data.labels = labels;
+        let data = [];
+        data.push(prop.SD);
+        data.push(prop.SMP);
+        data.push(prop.SMA);
+        chart.data.datasets[0].data = data;
+        chart.resize();
+        chart.update();
+    }
+
+    let init = async () => {
+
+        for(x in arKecamatan)
+        {
+            let get = await fetch(`geojson/${arKecamatan[x].replace(' ','_')}.geojson`);
+            let resp = await get.json();
+            layers[x] = L.geoJSON(resp, {
+                onEachFeature:function(f,l){
+                    // let html = '';
+                    // for(i in f.properties)
+                    // {
+                    //     html += `${i} : ${f.properties[i]}<br>`;
+                    // }
+                    // l.bindPopup(html);
+                    let y = x;
+                    l.on('click',(l)=>{
+                        l.target.setStyle({
+                            fillColor:'#ff9',
+                            fillOpacity:1,
+                            dashArray:'5',
+                            color:'#333'
+                        });
+                        if(idBefore!=undefined)
+                        {
+                            layers[idBefore].setStyle(styeMapChart());
+                        }
+                        setChartPie(y);
+                        idBefore = y;
+                    })
+                },
+                style:function(f,l){
+                    return styeMapChart();
+                }
+            }).addTo(map);
+        }
+
+        //run filter 
+        document.querySelector("[name=filter][value=SD]").click();
+        
+    }
+    init();
+</script>
+
+</html>
