@@ -16,6 +16,10 @@
 			margin: 0;
             padding: 0;
 		}
+        .aside{
+            height: 100vh;
+            overflow: auto;
+        }
         #map{
             height: 100vh;
             width: 100%;
@@ -43,13 +47,17 @@
             #map{
                 height: 400px;
             }
+            .aside{
+                height: auto;
+                overflow: auto;
+            }
         }
 	</style>
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
-            <div class="col-md-6 d-flex align-items-center flex-column py-5" style="overflow: auto;">
+            <div class="col-md-6 d-flex align-items-center flex-column py-5 aside">
                 <h4>ChartJs</h4>
                 <div class="btn-group">
                     <input type="radio" onclick="setChartBar(event)" class="btn btn-check d-none" name="filter" checked value="SD" id="data-sd" autocomplete="off">
